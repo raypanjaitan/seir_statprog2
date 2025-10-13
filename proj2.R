@@ -1,4 +1,4 @@
-n <- 100 ## number of population
+n <- 10000 ## number of population
 hmax <- 5 ## maximum household size
 
 h <- c() ## initiate the result variable, h
@@ -19,3 +19,47 @@ while (length(h) < n) { ## function run while the size of the result is less tha
 }
 
 h <- sample(h) ## make the h variable values to be randomized
+
+get.net=function(beta, h, nc=15)
+{
+  #Creating a matrix that stores the network link between i-th and j-th person,
+  #which is used to create the contact network model. Wherever people are
+  #from the same household, their link is set to 0. This caters to the same 
+  #person having the link with himself to be zero as well. Else, the network is
+  #created using the probability formula. The Bernoulli distribution takes this
+  #probability as an input and uses it to create a link between people i & j. 
+  #1 denotes link and 0 denotes no link. Finally, creating a n-dimension list
+  #that stores the indices wherever a 1 is potted in the matrix across rows.
+  n=length(beta) #Population size initialization in the function
+  links=matrix(data=NA, nrow=n, ncol=n) #Matrix to store the links between 
+  #people i & j
+  beta_bar=mean(beta) #Mean of beta vector for the probability formula
+  for(i in 1:n)
+  { #Looping through the rows (Identifying Person i) in the matrix
+    for (j in i:n)
+    { #Looping through the rows (Identifying Person j) in the matrix
+      if(h[i]==h[j])
+      { #Setting the link probability=0 where people i & j belong to the same
+        #household
+        links[i,j]=links[j,i]=0
+      }
+      else
+      {
+        #sum(runif(n)<p)/n
+        p=(nc*beta[i]*beta[j])/((beta_bar^2)*(n-1)) #Creating a probability acc.
+        #to the sociability factor
+        links[i,j]=links[j,i]=rbinom(1, 1, p) #Assigning 1/0 link between i and
+        #j according to the probability calculated
+      }
+    }
+  }
+  alink=apply(links, 1, function(row){ which(row==1) }) #For each person i, 
+  #noting the index if the sociability link is established, i.e., if the value 
+  #of a particular column corresponding to the i-th person's row is 1
+  return(alink)
+}
+
+beta=runif(n, min=0, max=1) #Drawing the sociability parameter from a uniform 
+#distribution since the probability of a person catching the disease is variable
+alink=get.net(beta, h, nc=15) 
+alink

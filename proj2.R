@@ -62,4 +62,3 @@ get.net=function(beta, h, nc=15)
 beta=runif(n, min=0, max=1) #Drawing the sociability parameter from a uniform 
 #distribution since the probability of a person catching the disease is variable
 alink=get.net(beta, h, nc=15) 
-alink

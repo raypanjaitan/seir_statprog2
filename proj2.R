@@ -62,3 +62,55 @@ get.net=function(beta, h, nc=15)
 beta=runif(n, min=0, max=1) #Drawing the sociability parameter from a uniform 
 #distribution since the probability of a person catching the disease is variable
 alink=get.net(beta, h, nc=15) 
+
+
+
+nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01), 
+                  delta = 0.2, gamma = 0.4, nc = 15, nt = 100, pinf = 0.005){
+  
+  n = length(beta)
+  beta_bar = mean(beta)
+  
+  x = rep(0, n)
+  ni = n * pinf # infecting a proportion of initial population
+  
+  init_inf = sample(1:n, ni) # sampling out of the whole population so we get their indexes
+  x[init_inf] = 2
+  
+  S <- E <- I <- R <- rep(0, nt) # initializing the states
+  
+  time <- 1:nt
+  for(i in 2:nt){
+    
+    u = runif(n)
+    
+    ## Step 1: I → R (Recovery)
+    x[x == 2 & u < delta] <- 3
+    
+    ## Step 2: E → I (Becoming infectious)
+    x[x == 1 & u < gamma] <- 2
+    
+    ## Step 3: S → E (New exposures due to infection)
+    infectious <- which(x == 2)
+    
+    if(length(infectious) > 0){
+      for (infector in infectious){
+        inf_hous = h[infector]
+        susceptible <- which(x == 0)
+        
+        
+        for (person in susceptible) {
+          prob_infect <- 0
+          
+          ##next comes the 3 independent events which im a bit confused about how to code
+        }
+      }
+    }
+    ## Update counts for each state
+    S[i] <- sum(x == 0)
+    E[i] <- sum(x == 1)
+    I[i] <- sum(x == 2)
+    R[i] <- sum(x == 3)
+  }
+  return(data.frame(time, S, E, I, R))
+}

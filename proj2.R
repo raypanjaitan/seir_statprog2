@@ -71,38 +71,69 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
   n = length(beta)
   beta_bar = mean(beta)
   
+  ## Initial population state: 0=S, 1=E, 2=I, 3=R
   x = rep(0, n)
   ni = n * pinf # infecting a proportion of initial population
-  
   init_inf = sample(1:n, ni) # sampling out of the whole population so we get their indexes
-  x[init_inf] = 2
+  x[init_inf] = 2 # assign initial infectors
   
   S <- E <- I <- R <- rep(0, nt) # initializing the states
-  
   time <- 1:nt
+  
+  ## Initial counts (day 1)
+  S[1] <- n - ni
+  E[1] <- 0
+  I[1] <- ni
+  R[1] <- 0
+  
+  
   for(i in 2:nt){
     
     u = runif(n)
     
-    ## Step 1: I → R (Recovery)
+    ## Step 1: I → R (recovery)
     x[x == 2 & u < delta] <- 3
     
-    ## Step 2: E → I (Becoming infectious)
+    ## Step 2: E → I (becoming infectious)
     x[x == 1 & u < gamma] <- 2
     
-    ## Step 3: S → E (New exposures due to infection)
+    ## Step 3: S → E (new exposures due to infection)
     infectious <- which(x == 2)
     
     if(length(infectious) > 0){
       for (infector in infectious){
-        inf_hous = h[infector]
-        susceptible <- which(x == 0)
+        inf_house = h[infector] # House of the infector
+        susceptible <- which(x == 0) # Returns only true indices for susceptible
         
         
         for (person in susceptible) {
           prob_infect <- 0
           
-          ##next comes the 3 independent events which im a bit confused about how to code
+          # (a) Transmitted from Household 
+          if (h[person] == inf_house){
+            prob_house <- alpha[1] * nc * beta[infector] * beta[person] /
+              (beta_bar^2 * (n - 1))
+            prob_infect <- prob_infect + prob_house
+          }
+
+          
+          # (b) Transmitted from Regular contact network 
+          if (person %in% alink[[infector]]){
+            prob_reg <- alpha[2] * nc * beta[infector] * beta[person] /
+              (beta_bar^2 * (n - 1))
+            prob_infect <- prob_infect + prob_reg
+          }
+
+          
+          # (c) Transmitted from Random mixing 
+          prob_random <- alpha[3] * nc * beta[infector] * beta[person] /
+            (beta_bar^2 * (n - 1))
+          prob_infect <- prob_infect + prob_random
+          
+          # simulate infection outcome for this susceptible person
+          if (runif(1) < prob_infect)
+            x[person] <- 1   # move to Exposed (E) state
+          
         }
       }
     }
@@ -112,5 +143,13 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
     I[i] <- sum(x == 2)
     R[i] <- sum(x == 3)
   }
-  return(data.frame(time, S, E, I, R))
+  return(list(
+    S = S,   # Susceptible count per day
+    E = E,   # Exposed count per day
+    I = I,   # Infectious count per day
+    R = R,   # Recovered count per day
+    t = time # Time (days)
+  ))
 }
+
+

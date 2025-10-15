@@ -109,36 +109,30 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
         inf_house = h[infector] # House of the infector
         susceptible <- which(x == 0) # Returns only true indices for susceptible
         
+        inf_house = h[infector] # House of the infector
+        susceptible <- which(x == 0) # Returns only true indices for susceptible
         
-        for (person in susceptible) {
-          prob_infect <- 0
-          
-          # (a) Transmitted from Household 
-          if (h[person] == inf_house){
-            prob_house <- alpha[1] * nc * beta[infector] * beta[person] /
-              (beta_bar^2 * (n - 1))
-            prob_infect <- prob_infect + prob_house
-          }
-
-          
-          # (b) Transmitted from Regular contact network 
-          if (person %in% alink[[infector]]){
-            prob_reg <- alpha[2] * nc * beta[infector] * beta[person] /
-              (beta_bar^2 * (n - 1))
-            prob_infect <- prob_infect + prob_reg
-          }
-
-          
-          # (c) Transmitted from Random mixing 
-          prob_random <- alpha[3] * nc * beta[infector] * beta[person] /
-            (beta_bar^2 * (n - 1))
-          prob_infect <- prob_infect + prob_random
-          
-          # simulate infection outcome for this susceptible person
-          if (runif(1) < prob_infect)
-            x[person] <- 1   # move to Exposed (E) state
-          
-        }
+        #Transmitted within household
+        prob_house <- rep(0, length(susceptible))
+        prob_house[h[susceptible] == inf_house] <- alpha[1]
+        
+        #Transmitted from regular networks
+        prob_reg <- rep(0, length(susceptible))
+        prob_reg[susceptible %in% alink[[infector]]] <- alpha[2]
+        
+        #Random mixing
+        prob_random <- alpha[3] * nc * beta[infector] * beta[susceptible] / 
+          (beta_bar^2 * (n - 1))
+        
+        #Calculating the Probability for infection considering all the 3 independent events
+        prob_infect = 1 - (1 - prob_house) * (1 - prob_reg) * (1 - prob_random)
+        
+        # Simulating the infection for all susceptible people 
+        infection_sim = rbinom(length(susceptible), 1, prob_infect)
+        infected = susceptible[infection_sim==1]
+        
+        #Assigning new Infected state
+        x[infected]<-1
       }
     }
     ## Update counts for each state

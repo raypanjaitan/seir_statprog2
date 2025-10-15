@@ -1,3 +1,9 @@
+# Aditya Sreekumar Achary - s2844915
+# Trisno Raynaldy Panjaitan - s2779061
+# Sanjoi Sethi - s2891732
+
+# Repo : https://github.com/raypanjaitan/seir_statprog2
+
 n <- 10000 ## number of population
 hmax <- 5 ## maximum household size
 
@@ -61,9 +67,7 @@ get.net=function(beta, h, nc=15)
 
 beta=runif(n, min=0, max=1) #Drawing the sociability parameter from a uniform 
 #distribution since the probability of a person catching the disease is variable
-alink=get.net(beta, h, nc=15) 
-
-
+alink=get.net(beta, h, nc=15)
 
 nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01), 
                   delta = 0.2, gamma = 0.4, nc = 15, nt = 100, pinf = 0.005){
@@ -159,3 +163,7 @@ seirPlot <-function(epi){
   points(epi$I,col=2) ## I (red)
   points(epi$R,col=3) ## R (green)
 }
+
+nseirResult <- nseir(beta, h, alink)
+
+seirPlot(nseirResult)

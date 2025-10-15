@@ -1,4 +1,4 @@
-n <- 100 ## number of population
+n <- 10000 ## number of population
 hmax <- 5 ## maximum household size
 
 h <- c() ## initiate the result variable, h
@@ -20,56 +20,134 @@ while (length(h) < n) { ## function run while the size of the result is less tha
 
 h <- sample(h) ## make the h variable values to be randomized
 
+get.net=function(beta, h, nc=15)
+{
+  #Creating a matrix that stores the network link between i-th and j-th person,
+  #which is used to create the contact network model. Wherever people are
+  #from the same household, their link is set to 0. This caters to the same 
+  #person having the link with himself to be zero as well. Else, the network is
+  #created using the probability formula. The Bernoulli distribution takes this
+  #probability as an input and uses it to create a link between people i & j. 
+  #1 denotes link and 0 denotes no link. Finally, creating a n-dimension list
+  #that stores the indices wherever a 1 is potted in the matrix across rows.
+  n=length(beta) #Population size initialization in the function
+  links=matrix(data=NA, nrow=n, ncol=n) #Matrix to store the links between 
+  #people i & j
+  beta_bar=mean(beta) #Mean of beta vector for the probability formula
+  for(i in 1:n)
+  { #Looping through the rows (Identifying Person i) in the matrix
+    for (j in i:n)
+    { #Looping through the rows (Identifying Person j) in the matrix
+      if(h[i]==h[j])
+      { #Setting the link probability=0 where people i & j belong to the same
+        #household
+        links[i,j]=links[j,i]=0
+      }
+      else
+      {
+        #sum(runif(n)<p)/n
+        p=(nc*beta[i]*beta[j])/((beta_bar^2)*(n-1)) #Creating a probability acc.
+        #to the sociability factor
+        links[i,j]=links[j,i]=rbinom(1, 1, p) #Assigning 1/0 link between i and
+        #j according to the probability calculated
+      }
+    }
+  }
+  alink=apply(links, 1, function(row){ which(row==1) }) #For each person i, 
+  #noting the index if the sociability link is established, i.e., if the value 
+  #of a particular column corresponding to the i-th person's row is 1
+  return(alink)
+}
 
-## Task 3 dummy (delete this later)
-# Day 1-10
-S_vals <- c(99, 99, 98, 95, 92, 89, 85, 82, 78, 75,
-            # Day 11-20
-            71, 68, 63, 58, 53, 49, 45, 42, 38, 35,
-            # Day 21-30
-            32, 28, 26, 24, 22, 20, 19, 18, 17, 16,
-            # Day 31-40
-            15, 15, 14, 14, 14, 13, 13, 13, 13, 13,
-            # Day 41-50
-            13, 13, 12, 12, 12, 12, 12, 12, 12, 12,
-            # Continue pattern to day 100...
-            rep(12, 50))  # Days 51-100 stay at 12
-
-E_vals <- c(0, 0, 1, 3, 5, 6, 8, 9, 10, 11,
-            12, 13, 14, 15, 15, 14, 13, 12, 11, 10,
-            9, 8, 7, 6, 5, 4, 3, 3, 2, 2,
-            1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-            rep(0, 60))
-
-I_vals <- c(1, 1, 1, 2, 3, 5, 7, 9, 12, 14,
-            17, 19, 23, 27, 32, 37, 42, 46, 51, 55,
-            59, 64, 67, 70, 73, 76, 78, 79, 81, 82,
-            84, 84, 85, 86, 86, 87, 87, 87, 87, 87,
-            rep(0, 60))
-
-R_vals <- c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            87, 87, 88, 88, 88, 88, 88, 88, 88, 88,
-            rep(88, 50))
+beta=runif(n, min=0, max=1) #Drawing the sociability parameter from a uniform 
+#distribution since the probability of a person catching the disease is variable
+alink=get.net(beta, h, nc=15) 
 
 
-beta <- rnorm(100, 1, 0.2)
 
-# Combine into matrix
-epi <- list(S = S_vals, 
-            E = E_vals, 
-            I = I_vals, 
-            R = R_vals,
-            beta = beta)
-## end of task 3
+nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01), 
+                  delta = 0.2, gamma = 0.4, nc = 15, nt = 100, pinf = 0.005){
+  
+  n = length(beta)
+  beta_bar = mean(beta)
+  
+  ## Initial population state: 0=S, 1=E, 2=I, 3=R
+  x = rep(0, n)
+  ni = n * pinf # infecting a proportion of initial population
+  init_inf = sample(1:n, ni) # sampling out of the whole population so we get their indexes
+  x[init_inf] = 2 # assign initial infectors
+  
+  S <- E <- I <- R <- rep(0, nt) # initializing the states
+  time <- 1:nt
+  
+  ## Initial counts (day 1)
+  S[1] <- n - ni
+  E[1] <- 0
+  I[1] <- ni
+  R[1] <- 0
+  
+  
+  for(i in 2:nt){
+    
+    u = runif(n)
+    
+    ## Step 1: I → R (recovery)
+    x[x == 2 & u < delta] <- 3
+    
+    ## Step 2: E → I (becoming infectious)
+    x[x == 1 & u < gamma] <- 2
+    
+    ## Step 3: S → E (new exposures due to infection)
+    infectious <- which(x == 2)
+    
+    if(length(infectious) > 0){
+      for (infector in infectious){
+        inf_house = h[infector] # House of the infector
+        susceptible <- which(x == 0) # Returns only true indices for susceptible
+        
+        
+        for (person in susceptible) {
+          prob_infect <- 0
+          
+          # (a) Transmitted from Household 
+          if (h[person] == inf_house){
+            prob_house <- alpha[1] * nc * beta[infector] * beta[person] /
+              (beta_bar^2 * (n - 1))
+            prob_infect <- prob_infect + prob_house
+          }
 
-## Task 4
-par(mfcol=c(2,3),mar=c(4,4,1,1)) ## set plot window up for multiple plots
-epi <- seir(bmu=7e-5,bsc=1e-7) ## run simulation
-hist(epi$beta,xlab="beta",main="") ## beta distribution
-plot(epi$S,ylim=c(0,max(epi$S)),xlab="day",ylab="N") ## S black
-points(epi$E,col=4) ## E (blue)
-points(epi$I,col=2) ## I (red)
-points(epi$R,col=3) ## R (green)
+          
+          # (b) Transmitted from Regular contact network 
+          if (person %in% alink[[infector]]){
+            prob_reg <- alpha[2] * nc * beta[infector] * beta[person] /
+              (beta_bar^2 * (n - 1))
+            prob_infect <- prob_infect + prob_reg
+          }
+
+          
+          # (c) Transmitted from Random mixing 
+          prob_random <- alpha[3] * nc * beta[infector] * beta[person] /
+            (beta_bar^2 * (n - 1))
+          prob_infect <- prob_infect + prob_random
+          
+          # simulate infection outcome for this susceptible person
+          if (runif(1) < prob_infect)
+            x[person] <- 1   # move to Exposed (E) state
+          
+        }
+      }
+    }
+    ## Update counts for each state
+    S[i] <- sum(x == 0)
+    E[i] <- sum(x == 1)
+    I[i] <- sum(x == 2)
+    R[i] <- sum(x == 3)
+  }
+  return(list(
+    S = S,   # Susceptible count per day
+    E = E,   # Exposed count per day
+    I = I,   # Infectious count per day
+    R = R,   # Recovered count per day
+    t = time # Time (days)
+  ))
+}

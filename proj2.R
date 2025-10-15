@@ -154,7 +154,6 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
 
 seirPlot <-function(epi){
   par(mfcol=c(2,3),mar=c(4,4,1,1)) ## set plot window up for multiple plots
-  hist(epi$beta,xlab="beta",main="") ## beta distribution
   plot(epi$S,ylim=c(0,max(epi$S)),xlab="day",ylab="N") ## S black
   points(epi$E,col=4) ## E (blue)
   points(epi$I,col=2) ## I (red)

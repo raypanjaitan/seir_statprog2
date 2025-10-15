@@ -152,18 +152,3 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
   ))
 }
 
-set.seed(123)  # for reproducibility
-
-# Run the model
-result <- nseir(
-  beta = beta,
-  h = h,
-  alink = alink,
-  alpha = c(0.1, 0.01, 0.01),  # infection probabilities
-  delta = 0.2,                 # recovery rate
-  gamma = 0.4,                 # incubation rate
-  nc = 15,                     # average contacts
-  nt = 60,                     # simulate 60 days (reduce from 100 for speed)
-  pinf = 0.005                 # initial infected proportion (0.5%)
-)
-

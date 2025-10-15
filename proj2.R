@@ -107,28 +107,28 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
         
         
         for (person in susceptible) {
-          prob_infect <- 0
+          prob_house <- 0
+          prob_reg <- 0
+          prob_random <- 0
           
           # (a) Transmitted from Household 
           if (h[person] == inf_house){
-            prob_house <- alpha[1] * nc * beta[infector] * beta[person] /
-              (beta_bar^2 * (n - 1))
-            prob_infect <- prob_infect + prob_house
+            prob_house <- alpha[1] 
           }
 
           
           # (b) Transmitted from Regular contact network 
           if (person %in% alink[[infector]]){
-            prob_reg <- alpha[2] * nc * beta[infector] * beta[person] /
-              (beta_bar^2 * (n - 1))
-            prob_infect <- prob_infect + prob_reg
+            prob_reg <- alpha[2]
           }
 
           
           # (c) Transmitted from Random mixing 
           prob_random <- alpha[3] * nc * beta[infector] * beta[person] /
             (beta_bar^2 * (n - 1))
-          prob_infect <- prob_infect + prob_random
+
+          
+          prob_infect <- 1 - (1 - prob_house) * (1 - prob_reg) * (1 - prob_random)
           
           # simulate infection outcome for this susceptible person
           if (runif(1) < prob_infect)
@@ -152,4 +152,18 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
   ))
 }
 
+set.seed(123)  # for reproducibility
+
+# Run the model
+result <- nseir(
+  beta = beta,
+  h = h,
+  alink = alink,
+  alpha = c(0.1, 0.01, 0.01),  # infection probabilities
+  delta = 0.2,                 # recovery rate
+  gamma = 0.4,                 # incubation rate
+  nc = 15,                     # average contacts
+  nt = 60,                     # simulate 60 days (reduce from 100 for speed)
+  pinf = 0.005                 # initial infected proportion (0.5%)
+)
 

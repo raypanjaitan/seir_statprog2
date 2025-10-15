@@ -151,5 +151,3 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
     t = time # Time (days)
   ))
 }
-
-

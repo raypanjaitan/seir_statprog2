@@ -1,8 +1,8 @@
-# Aditya Sreekumar Achary - s2844915
-# Trisno Raynaldy Panjaitan - s2779061 - Part 1 dan 4
-# Sanjoi Sethi - s2891732
+# Aditya Sreekumar Achary - s2844915 - Part 3
+# Sanjoi Sethi - s2891732 - Part 2 and 5
+# Trisno Raynaldy Panjaitan - s2779061 - Part 1 and 4
 
-# Repo : https://github.com/raypanjaitan/seir_statprog2
+# Repo Link: https://github.com/raypanjaitan/seir_statprog2
 
 n <- 1000 ## number of population
 hmax <- 5 ## maximum household size
@@ -28,16 +28,18 @@ while (length(h) < n) {
 
 h <- sample(h) ## randomize the h variable values
 
+#Function to create the regular contacts network
 get.net=function(beta, h, nc=15)
 {
-  #Creating a matrix that stores the network link between i-th and j-th person,
-  #which is used to create the contact network model. Wherever people are
-  #from the same household, their link is set to 0. This caters to the same 
-  #person having the link with himself to be zero as well. Else, the network is
-  #created using the probability formula. The Bernoulli distribution takes this
-  #probability as an input and uses it to create a link between people i & j. 
-  #1 denotes link and 0 denotes no link. Finally, creating a n-dimension list
-  #that stores the indices wherever a 1 is potted in the matrix across rows.
+  #1. Matrix initialisation to store the network link between i-th and j-th 
+  #person for the contact network model
+  #2. If Household networks are encountered, they are set to 0 in the matrix.
+  # (Catering to ij link=0 where i=j)
+  #3 Else, the network is created using the sociability formula
+  #4 Using the probability to sample from a Bernoulli distribution to create a 
+  #link between people i & j. (1 denotes link and 0 denotes no link)
+  #5 Creating a n-dimension list that stores the indices wherever a 1 is logged
+  #in the matrix across rows.
   n=length(beta) #Population size initialization in the function
   links=matrix(data=NA, nrow=n, ncol=n) #Matrix to store the links between 
   #people i & j
@@ -75,7 +77,7 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
   
   ## Initial population state: 0=S, 1=E, 2=I, 3=R
   x = rep(0, n)
-  ni = n * pinf # infecting a proportion of initial population
+  ni = round(n * pinf) # infecting a proportion of initial population
   init_inf = sample(1:n, ni) # sampling out of the whole population so we get their indexes
   x[init_inf] = 2 # assign initial infectors
   
@@ -150,25 +152,49 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
 
 ## plot the dynamics of the population by states
 seirPlot <-function(epi, title){
-  plot(epi$S,ylim=c(0,max(epi$S)),xlab="day",ylab="N",main=title) ## set the 
-  #maximum size of graph, label, put Susceptible data to the plot (black)
+  plot(epi$S,ylim=c(0,max(epi$S)),xlab="day",ylab="N",col=1,main=title) ## set
+  #the maximum size of graph, label, put Susceptible data to the plot (black)
   points(epi$E,col=4) ## put Exposed data into the graph (blue)
   points(epi$I,col=2) ## put Infected data into the graph (red)
   points(epi$R,col=3) ## put Recovered data into the graph (green)
+  legend(70,800,legend = c("Susceptible", "Exposed", "Infected", "Recovered"),
+         col=c(1,4,2,3),pch=1) #Legend for more info on the graph
 }
 
 beta=runif(n, min=0, max=1) #Drawing the sociability parameter from a uniform 
 #distribution since the probability of a person catching the disease is variable
-alink=get.net(beta, h, nc=15)
-nseirResult1=nseir(beta, h, alink)
-nseirResult2=nseir(beta, h, alink, alpha = c(0, 0, 0.04))
-beta_new=rep(mean(beta), n)
-alink=get.net(beta_new, h, nc=15)
-nseirResult3=nseir(beta_new, h, alink)
-nseirResult4=nseir(beta_new, h, alink, alpha = c(0, 0, 0.04))
+alink=get.net(beta, h, nc=15) #Contact model
+nseirResult1=nseir(beta, h, alink) #Calling the function and storing the result
+#with standard parameters
+nseirResult2=nseir(beta, h, alink, alpha = c(0, 0, 0.04)) #Storing the result
+#only with the random mixing model
+beta_new=rep(mean(beta), n) #Calculating the new beta vector with the mean of 
+#the values of the previous beta
+alink=get.net(beta_new, h, nc=15) #Contact model with new beta
+nseirResult3=nseir(beta_new, h, alink) #Storing the result using the new beta 
+#vector and standard parameters
+nseirResult4=nseir(beta_new, h, alink, alpha = c(0, 0, 0.04)) #Storing the 
+#result only with the random mixing model
 
-par(mfrow = c(2,2), mar=c(4,4,1,1)) ## set plot window up for multiple plots
+#Plotting all the 4 results
+par(mfrow = c(2,2), mar=c(4,4,1,1)) # Set plot window up for multiple plots
 seirPlot(nseirResult1, "Result: 1")
 seirPlot(nseirResult2, "Result: 2")
 seirPlot(nseirResult3, "Result: 3")
 seirPlot(nseirResult4, "Result: 4")
+
+#Result Comments:
+#In the first model where we are considering all 3 sociability parameters, it is
+#observed that the population exposed and infected gradually over time. Whereas
+#in the second model, we can see a higher peak for the infected and exposed
+#states. From this, we can conclude that the epidemic is longer in the first 
+#model as compared to the second one because the household and regular contact 
+#network introduces the factor of local clusters, because of the which the
+#number of people each individual can infect gets limited.
+#When the beta value is put to a constant in the third and the fourth model, the 
+#variability gets removed. Because of this, the severity of the epidemic gets
+#overestimated, resulting in more number of people being exposed and infected in
+#the population, which can be observed when we compare the 1st model vs 3rd and
+#2nd model vs 4th.
+#Out of the 4 models, the epidemic is largest when the beta becomes constant 
+#and only random mixing is a sociability factor.

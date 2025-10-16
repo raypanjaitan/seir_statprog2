@@ -155,7 +155,7 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
 
 ## plot the dynamics of the population by states
 seirPlot <-function(epi){
-  par(mfcol=c(2,3),mar=c(4,4,1,1)) ## set plot window up for multiple plots
+  par(mfrow = c(2,2), mar=c(4,4,1,1)) ## set plot window up for multiple plots
   ## set the maximum size of graph, label
   ## put Susceptible data to the plot (black)
   plot(epi$S,ylim=c(0,max(epi$S)),xlab="day",ylab="N")

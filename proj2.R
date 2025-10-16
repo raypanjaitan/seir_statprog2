@@ -4,7 +4,7 @@
 
 # Repo : https://github.com/raypanjaitan/seir_statprog2
 
-n <- 10000 ## number of population
+n <- 1000 ## number of population
 hmax <- 5 ## maximum household size
 h <- c() ## initiate the result variable, h
 houseID <- 1 ## id of which house a person is in
@@ -66,10 +66,6 @@ get.net=function(beta, h, nc=15)
   #of a particular column corresponding to the i-th person's row is 1
   return(alink)
 }
-
-beta=runif(n, min=0, max=1) #Drawing the sociability parameter from a uniform 
-#distribution since the probability of a person catching the disease is variable
-alink=get.net(beta, h, nc=15) 
 
 nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01), 
                   delta = 0.2, gamma = 0.4, nc = 15, nt = 100, pinf = 0.005){
@@ -153,14 +149,26 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
 }
 
 ## plot the dynamics of the population by states
-seirPlot <-function(epi){
-  par(mfcol=c(2,3),mar=c(4,4,1,1)) ## set plot window up for multiple plots
-  plot(epi$S,ylim=c(0,max(epi$S)),xlab="day",ylab="N") ## set the maximum size of graph, label, put Susceptible data to the plot (black)
+seirPlot <-function(epi, title){
+  plot(epi$S,ylim=c(0,max(epi$S)),xlab="day",ylab="N",main=title) ## set the 
+  #maximum size of graph, label, put Susceptible data to the plot (black)
   points(epi$E,col=4) ## put Exposed data into the graph (blue)
   points(epi$I,col=2) ## put Infected data into the graph (red)
   points(epi$R,col=3) ## put Recovered data into the graph (green)
 }
 
-nseirResult <- nseir(beta, h, alink)
+beta=runif(n, min=0, max=1) #Drawing the sociability parameter from a uniform 
+#distribution since the probability of a person catching the disease is variable
+alink=get.net(beta, h, nc=15)
+nseirResult1=nseir(beta, h, alink)
+nseirResult2=nseir(beta, h, alink, alpha = c(0, 0, 0.04))
+beta_new=rep(mean(beta), n)
+alink=get.net(beta_new, h, nc=15)
+nseirResult3=nseir(beta_new, h, alink)
+nseirResult4=nseir(beta_new, h, alink, alpha = c(0, 0, 0.04))
 
-seirPlot(nseirResult)
+par(mfrow = c(2,2), mar=c(4,4,1,1)) ## set plot window up for multiple plots
+seirPlot(nseirResult1, "Result: 1")
+seirPlot(nseirResult2, "Result: 2")
+seirPlot(nseirResult3, "Result: 3")
+seirPlot(nseirResult4, "Result: 4")

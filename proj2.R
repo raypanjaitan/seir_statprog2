@@ -1,24 +1,32 @@
+# Aditya Sreekumar Achary - s2844915
+# Trisno Raynaldy Panjaitan - s2779061 - Part 1 dan 4
+# Sanjoi Sethi - s2891732
+
+# Repo : https://github.com/raypanjaitan/seir_statprog2
+
 n <- 10000 ## number of population
 hmax <- 5 ## maximum household size
-
 h <- c() ## initiate the result variable, h
-houseID <- 1 ##id
+houseID <- 1 ## id of which house a person is in
 
-while (length(h) < n) { ## function run while the size of the result is less than number of population
+while (length(h) < n) {
+## function runs while the size of the result is less than number of population
+## function assigns each person to a household, labeled by houseID
+  
   r <- n - length(h) ## counter of the remaining population that has not been processed
   
-  ## condition so the size won't be greater than the remaining
+  ## condition so the size of the household won't be greater than the remaining number of people
   if (r >= hmax) { 
     sz <- sample(1:hmax, 1) ## if true take sample from 1 to hmax
   } else {
-    sz <- sample(1:r, 1) ## if false take sample from 1 remaining
+    sz <- sample(1:r, 1) ## if false take sample from 1 to remaining
   }
   
-  h <- c(h, rep(houseID, sz)) ## add household id to indices of the size of sz variable
+  h <- c(h, rep(houseID, sz)) ## add household id to indices of the size of sz sample variable
   houseID <- houseID + 1 ## add 1 value to houseID so it can process the next iteration
 }
 
-h <- sample(h) ## make the h variable values to be randomized
+h <- sample(h) ## randomize the h variable values
 
 get.net=function(beta, h, nc=15)
 {
@@ -62,3 +70,97 @@ get.net=function(beta, h, nc=15)
 beta=runif(n, min=0, max=1) #Drawing the sociability parameter from a uniform 
 #distribution since the probability of a person catching the disease is variable
 alink=get.net(beta, h, nc=15) 
+
+nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01), 
+                  delta = 0.2, gamma = 0.4, nc = 15, nt = 100, pinf = 0.005){
+  
+  n = length(beta)
+  beta_bar = mean(beta)
+  
+  ## Initial population state: 0=S, 1=E, 2=I, 3=R
+  x = rep(0, n)
+  ni = n * pinf # infecting a proportion of initial population
+  init_inf = sample(1:n, ni) # sampling out of the whole population so we get their indexes
+  x[init_inf] = 2 # assign initial infectors
+  
+  S <- E <- I <- R <- rep(0, nt) # initializing the states
+  time <- 1:nt
+  
+  ## Initial counts (day 1)
+  S[1] <- n - ni
+  E[1] <- 0
+  I[1] <- ni
+  R[1] <- 0
+  
+  
+  for(i in 2:nt){
+    
+    u = runif(n)
+    
+    ## Step 1: I → R (recovery)
+    x[x == 2 & u < delta] <- 3
+    
+    ## Step 2: E → I (becoming infectious)
+    x[x == 1 & u < gamma] <- 2
+    
+    ## Step 3: S → E (new exposures due to infection)
+    infectious <- which(x == 2)
+    
+    if(length(infectious) > 0){
+      for (infector in infectious){
+        inf_house = h[infector] # House of the infector
+        susceptible <- which(x == 0) # Returns only true indices for susceptible
+        
+        inf_house = h[infector] # House of the infector
+        susceptible <- which(x == 0) # Returns only true indices for susceptible
+        
+        #Transmitted within household
+        prob_house <- rep(0, length(susceptible))
+        prob_house[h[susceptible] == inf_house] <- alpha[1]
+        
+        #Transmitted from regular networks
+        prob_reg <- rep(0, length(susceptible))
+        prob_reg[susceptible %in% alink[[infector]]] <- alpha[2]
+        
+        #Random mixing
+        prob_random <- alpha[3] * nc * beta[infector] * beta[susceptible] / 
+          (beta_bar^2 * (n - 1))
+        
+        #Calculating the Probability for infection considering all the 3 independent events
+        prob_infect = 1 - (1 - prob_house) * (1 - prob_reg) * (1 - prob_random)
+        
+        # Simulating the infection for all susceptible people 
+        infection_sim = rbinom(length(susceptible), 1, prob_infect)
+        infected = susceptible[infection_sim==1]
+        
+        #Assigning new Infected state
+        x[infected]<-1
+      }
+    }
+    ## Update counts for each state
+    S[i] <- sum(x == 0)
+    E[i] <- sum(x == 1)
+    I[i] <- sum(x == 2)
+    R[i] <- sum(x == 3)
+  }
+  return(list(
+    S = S,   # Susceptible count per day
+    E = E,   # Exposed count per day
+    I = I,   # Infectious count per day
+    R = R,   # Recovered count per day
+    t = time # Time (days)
+  ))
+}
+
+## plot the dynamics of the population by states
+seirPlot <-function(epi){
+  par(mfcol=c(2,3),mar=c(4,4,1,1)) ## set plot window up for multiple plots
+  plot(epi$S,ylim=c(0,max(epi$S)),xlab="day",ylab="N") ## set the maximum size of graph, label, put Susceptible data to the plot (black)
+  points(epi$E,col=4) ## put Exposed data into the graph (blue)
+  points(epi$I,col=2) ## put Infected data into the graph (red)
+  points(epi$R,col=3) ## put Recovered data into the graph (green)
+}
+
+nseirResult <- nseir(beta, h, alink)
+
+seirPlot(nseirResult)

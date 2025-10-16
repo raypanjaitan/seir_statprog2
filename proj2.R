@@ -1,30 +1,32 @@
 # Aditya Sreekumar Achary - s2844915
-# Trisno Raynaldy Panjaitan - s2779061
+# Trisno Raynaldy Panjaitan - s2779061 - Part 1 dan 4
 # Sanjoi Sethi - s2891732
 
 # Repo : https://github.com/raypanjaitan/seir_statprog2
 
 n <- 10000 ## number of population
 hmax <- 5 ## maximum household size
-
 h <- c() ## initiate the result variable, h
-houseID <- 1 ##id
+houseID <- 1 ## id of which house a person is in
 
-while (length(h) < n) { ## function run while the size of the result is less than number of population
+while (length(h) < n) {
+## function runs while the size of the result is less than number of population
+## function assigns each person to a household, labeled by houseID
+  
   r <- n - length(h) ## counter of the remaining population that has not been processed
   
-  ## condition so the size won't be greater than the remaining
+  ## condition so the size of the household won't be greater than the remaining number of people
   if (r >= hmax) { 
     sz <- sample(1:hmax, 1) ## if true take sample from 1 to hmax
   } else {
-    sz <- sample(1:r, 1) ## if false take sample from 1 remaining
+    sz <- sample(1:r, 1) ## if false take sample from 1 to remaining
   }
   
-  h <- c(h, rep(houseID, sz)) ## add household id to indices of the size of sz variable
+  h <- c(h, rep(houseID, sz)) ## add household id to indices of the size of sz sample variable
   houseID <- houseID + 1 ## add 1 value to houseID so it can process the next iteration
 }
 
-h <- sample(h) ## make the h variable values to be randomized
+h <- sample(h) ## randomize the h variable values
 
 get.net=function(beta, h, nc=15)
 {
@@ -150,12 +152,13 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
   ))
 }
 
+## plot the dynamics of the population by states
 seirPlot <-function(epi){
   par(mfcol=c(2,3),mar=c(4,4,1,1)) ## set plot window up for multiple plots
-  plot(epi$S,ylim=c(0,max(epi$S)),xlab="day",ylab="N") ## S black
-  points(epi$E,col=4) ## E (blue)
-  points(epi$I,col=2) ## I (red)
-  points(epi$R,col=3) ## R (green)
+  plot(epi$S,ylim=c(0,max(epi$S)),xlab="day",ylab="N") ## set the maximum size of graph, label, put Susceptible data to the plot (black)
+  points(epi$E,col=4) ## put Exposed data into the graph (blue)
+  points(epi$I,col=2) ## put Infected data into the graph (red)
+  points(epi$R,col=3) ## put Recovered data into the graph (green)
 }
 
 nseirResult <- nseir(beta, h, alink)

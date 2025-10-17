@@ -23,7 +23,7 @@
 # eventually declines within the connected population.
 # ------------------------------------------------------------------------------
 
-n <- 10000 ## number of population
+n <- 1000 ## number of population
 hmax <- 5 ## maximum household size
 h <- c() ## initiate the result variable, h
 houseID <- 1 ## id of which house a person is in

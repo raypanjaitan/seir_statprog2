@@ -1,8 +1,25 @@
-# Aditya Sreekumar Achary - s2844915
-# Trisno Raynaldy Panjaitan - s2779061 - Part 1 dan 4
-# Sanjoi Sethi - s2891732
+# Aditya Sreekumar Achary - s2844915 - Part 3
+# Sanjoi Sethi - s2891732 - Part 2 and 5
+# Trisno Raynaldy Panjaitan - s2779061 - Part 1 and 4
 
-# Repo : https://github.com/raypanjaitan/seir_statprog2
+# Repo Link: https://github.com/raypanjaitan/seir_statprog2
+
+# ------------------------------------------------------------------------------
+# SEIR Epidemic Simulation
+# ------------------------------------------------------------------------------
+# This code simulates the spread of an infectious disease using an SEIR model.
+# It begins by creating a population of size n, divided into households represented
+# by h. Each individual is assigned a sociability factor (beta) that determines
+# how actively they interact with others. A contact network (alink) is then
+# generated to represent regular social connections outside their households.
+#
+# The simulation runs for nt days, updating each person’s health status over time.
+# Individuals move through four states — Susceptible (S), Exposed (E), Infectious
+# (I), and Recovered (R) — based on random interactions and transmission
+# probabilities. The model tracks how infections spread across households and
+# social links, showing how an outbreak grows, peaks, and eventually declines
+# within the connected population.
+# ------------------------------------------------------------------------------
 
 n <- 10000 ## number of population
 hmax <- 5 ## maximum household size
@@ -29,16 +46,18 @@ while (length(h) < n) {
 
 h <- sample(h) ## randomize the h variable values
 
+#Function to create the regular contacts network
 get.net=function(beta, h, nc=15)
 {
-  #Creating a matrix that stores the network link between i-th and j-th person,
-  #which is used to create the contact network model. Wherever people are
-  #from the same household, their link is set to 0. This caters to the same 
-  #person having the link with himself to be zero as well. Else, the network is
-  #created using the probability formula. The Bernoulli distribution takes this
-  #probability as an input and uses it to create a link between people i & j. 
-  #1 denotes link and 0 denotes no link. Finally, creating a n-dimension list
-  #that stores the indices wherever a 1 is potted in the matrix across rows.
+  #1. Matrix initialization to store the network link between i-th and j-th 
+  #person for the contact network model
+  #2. If Household networks are encountered, they are set to 0 in the matrix.
+  # (Catering to ij link=0 where i=j)
+  #3 Else, the network is created using the sociability formula
+  #4 Using the probability to sample from a Bernoulli distribution to create a 
+  #link between people i & j. (1 denotes link and 0 denotes no link)
+  #5 Creating a n-dimension list that stores the indices wherever a 1 is logged
+  #in the matrix across rows.
   n=length(beta) #Population size initialization in the function
   links=matrix(data=NA, nrow=n, ncol=n) #Matrix to store the links between 
   #people i & j
@@ -68,23 +87,32 @@ get.net=function(beta, h, nc=15)
   return(alink)
 }
 
-beta=runif(n, min=0, max=1) #Drawing the sociability parameter from a uniform 
-#distribution since the probability of a person catching the disease is variable
-alink=get.net(beta, h, nc=15)
-
+# Main SEIR simulation function
 nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01), 
                   delta = 0.2, gamma = 0.4, nc = 15, nt = 100, pinf = 0.005){
   
-  n = length(beta)
-  beta_bar = mean(beta)
+  # nseir() simulates SEIR dynamics: each person moves through 4 states:
+  #   0 - Susceptible, 1 - Exposed, 2 - Infectious, 3 - Recovered
+  # Daily transitions:
+  #   I → R with recovery probability (Gamma)
+  #   E → I with infection probability (Delta)
+  #   S → E via:
+  #     1. Household transmission (Alpha-h)
+  #     2. Social contacts (Alpha-c)
+  #     3. Random mixing weighted by sociability (Alpha-r, Beta)
+  # Transmission routes act independently. The function tracks S, E, I, R counts
+  # over nt days to monitor disease outbreak evolution.
+  
+  n = length(beta) ## Total number of individuals in population
+  beta_bar = mean(beta)## Average sociability factor across population
   
   ## Initial population state: 0=S, 1=E, 2=I, 3=R
   x = rep(0, n)
-  ni = n * pinf # infecting a proportion of initial population
-  init_inf = sample(1:n, ni) # sampling out of the whole population so we get their indexes
-  x[init_inf] = 2 # assign initial infectors
+  ni = round(n * pinf) ## Infecting a proportion of initial population
+  init_inf = sample(1:n, ni) ## Sample indexes from entire population
+  x[init_inf] = 2 ## Assign initial infectors
   
-  S <- E <- I <- R <- rep(0, nt) # initializing the states
+  S <- E <- I <- R <- rep(0, nt) ## Initializing the states
   time <- 1:nt
   
   ## Initial counts (day 1)
@@ -93,49 +121,52 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
   I[1] <- ni
   R[1] <- 0
   
-  
+  ## Iterate through each simulation day
   for(i in 2:nt){
     
     u = runif(n)
     
-    ## Step 1: I → R (recovery)
+    ## I → R (recovery)
     x[x == 2 & u < delta] <- 3
     
-    ## Step 2: E → I (becoming infectious)
+    ## E → I (becoming infectious)
     x[x == 1 & u < gamma] <- 2
     
-    ## Step 3: S → E (new exposures due to infection)
+    ## S → E (new exposures due to infection)
     infectious <- which(x == 2)
     
-    if(length(infectious) > 0){
-      for (infector in infectious){
-        inf_house = h[infector] # House of the infector
-        susceptible <- which(x == 0) # Returns only true indices for susceptible
+    ## Check if any infectious individuals are present
+    if(length(infectious) > 0){ 
+      for (infector in infectious){ # Loop through each infectious person
         
-        inf_house = h[infector] # House of the infector
-        susceptible <- which(x == 0) # Returns only true indices for susceptible
+        inf_house = h[infector] ## Identifying house of the infector
+        susceptible <- which(x == 0) ## Identify all susceptible individuals
         
-        #Transmitted within household
-        prob_house <- rep(0, length(susceptible))
+        ## (a) Household infection
+        prob_house <- rep(0, length(susceptible)) 
         prob_house[h[susceptible] == inf_house] <- alpha[1]
+        ## TRUE for susceptibles in same household; assign infection prob Alpha-h
         
-        #Transmitted from regular networks
+        ## (b) Regular contact infection
         prob_reg <- rep(0, length(susceptible))
         prob_reg[susceptible %in% alink[[infector]]] <- alpha[2]
+        # TRUE if linked through contact network;assign infection prob Alpha-c
         
-        #Random mixing
+        ## (c) Random mixing infection
         prob_random <- alpha[3] * nc * beta[infector] * beta[susceptible] / 
           (beta_bar^2 * (n - 1))
+        ## Infection prob from daily random interactions
         
-        #Calculating the Probability for infection considering all the 3 independent events
+        # Combine probabilities from all three sources
         prob_infect = 1 - (1 - prob_house) * (1 - prob_reg) * (1 - prob_random)
         
-        # Simulating the infection for all susceptible people 
+        ## Simulating the infection using Bernoulli trials
         infection_sim = rbinom(length(susceptible), 1, prob_infect)
         infected = susceptible[infection_sim==1]
+        ## Individuals that become exposed (S → E)
         
-        #Assigning new Infected state
-        x[infected]<-1
+        x[infected]<-1 ## Update exposed individuals in population
+        
       }
     }
     ## Update counts for each state
@@ -145,25 +176,61 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
     R[i] <- sum(x == 3)
   }
   return(list(
-    S = S,   # Susceptible count per day
-    E = E,   # Exposed count per day
-    I = I,   # Infectious count per day
-    R = R,   # Recovered count per day
-    t = time # Time (days)
+    S = S,   ## Susceptible count per day
+    E = E,   ## Exposed count per day
+    I = I,   ## Infectious count per day
+    R = R,   ## Recovered count per day
+    t = time ## Time (days)
   ))
 }
 
+
+
 ## plot the dynamics of the population by states
-seirPlot <-function(epi){
-  par(mfrow = c(2,2), mar=c(4,4,1,1)) ## set plot window up for multiple plots
-  ## set the maximum size of graph, label
-  ## put Susceptible data to the plot (black)
-  plot(epi$S,ylim=c(0,max(epi$S)),xlab="day",ylab="N")
+seirPlot <-function(epi, title){
+  plot(epi$S,ylim=c(0,max(epi$S)),xlab="day",ylab="N",col=1,main=title) ## set
+  #the maximum size of graph, label, put Susceptible data to the plot (black)
   points(epi$E,col=4) ## put Exposed data into the graph (blue)
   points(epi$I,col=2) ## put Infected data into the graph (red)
   points(epi$R,col=3) ## put Recovered data into the graph (green)
+  legend(70,800,legend = c("Susceptible", "Exposed", "Infected", "Recovered"),
+         col=c(1,4,2,3),pch=1) #Legend for more info on the graph
 }
 
-nseirResult <- nseir(beta, h, alink)
+beta=runif(n, min=0, max=1) #Drawing the sociability parameter from a uniform 
+#distribution since the probability of a person catching the disease is variable
+alink=get.net(beta, h, nc=15) #Contact model
+nseirResult1=nseir(beta, h, alink) #Calling the function and storing the result
+#with standard parameters
+nseirResult2=nseir(beta, h, alink, alpha = c(0, 0, 0.04)) #Storing the result
+#only with the random mixing model
+beta_new=rep(mean(beta), n) #Calculating the new beta vector with the mean of 
+#the values of the previous beta
+alink=get.net(beta_new, h, nc=15) #Contact model with new beta
+nseirResult3=nseir(beta_new, h, alink) #Storing the result using the new beta 
+#vector and standard parameters
+nseirResult4=nseir(beta_new, h, alink, alpha = c(0, 0, 0.04)) #Storing the 
+#result only with the random mixing model
 
-seirPlot(nseirResult)
+#Plotting all the 4 results
+par(mfrow = c(2,2), mar=c(4,4,1,1)) # Set plot window up for multiple plots
+seirPlot(nseirResult1, "Result: 1")
+seirPlot(nseirResult2, "Result: 2")
+seirPlot(nseirResult3, "Result: 3")
+seirPlot(nseirResult4, "Result: 4")
+
+#Result Comments:
+#In the first model where we are considering all 3 sociability parameters, it is
+#observed that the population exposed and infected gradually over time. Whereas
+#in the second model, we can see a higher peak for the infected and exposed
+#states. From this, we can conclude that the epidemic is longer in the first 
+#model as compared to the second one because the household and regular contact 
+#network introduces the factor of local clusters, because of the which the
+#number of people each individual can infect gets limited.
+#When the beta value is put to a constant in the third and the fourth model, the 
+#variability gets removed. Because of this, the severity of the epidemic gets
+#overestimated, resulting in more number of people being exposed and infected in
+#the population, which can be observed when we compare the 1st model vs 3rd and
+#2nd model vs 4th.
+#Out of the 4 models, the epidemic is largest when the beta becomes constant 
+#and only random mixing is a sociability factor.

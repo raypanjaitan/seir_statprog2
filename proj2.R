@@ -27,20 +27,21 @@ h <- c() ## initiate the result variable, h
 houseID <- 1 ## id of which house a person is in
 
 while (length(h) < n) {
-  ## function runs while the size of the result is less than number of population
-  ## function assigns each person to a household, labeled by houseID
+## function runs while the size of the result is less than number of population
+## function assigns each person to a household, labeled by houseID
   
-  r <- n - length(h) ## counter of the remaining population that has not been processed
+  r <- n - length(h) ## unprocessed remaining population counter
   
-  ## condition so the size of the household won't be greater than the remaining number of people
+  ## condition so the size of the household won't be greater
+  ## than the remaining number of people
   if (r >= hmax) { 
     sz <- sample(1:hmax, 1) ## if true take sample from 1 to hmax
   } else {
     sz <- sample(1:r, 1) ## if false take sample from 1 to remaining
   }
   
-  h <- c(h, rep(houseID, sz)) ## add household id to indices of the size of sz sample variable
-  houseID <- houseID + 1 ## add 1 value to houseID so it can process the next iteration
+  h <- c(h, rep(houseID, sz)) ## add household id to indices of the size of sz
+  houseID <- houseID + 1 ## add 1 value to houseID so to run the iteration
 }
 
 h <- sample(h) ## randomize the h variable values

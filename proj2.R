@@ -8,17 +8,19 @@
 # SEIR Epidemic Simulation
 # ------------------------------------------------------------------------------
 # This code simulates the spread of an infectious disease using an SEIR model.
-# It begins by creating a population of size n, divided into households represented
-# by h. Each individual is assigned a sociability factor (beta) that determines
-# how actively they interact with others. A contact network (alink) is then
-# generated to represent regular social connections outside their households.
+# It begins by creating a population of size n, divided into households
+# represented by h. Each individual is assigned a sociability factor (beta)
+# that determineshow actively they interact with others. A contact network
+#  (alink) is then generated to represent regular social connections outside
+#  their households.
 #
-# The simulation runs for nt days, updating each person’s health status over time.
-# Individuals move through four states — Susceptible (S), Exposed (E), Infectious
-# (I), and Recovered (R) — based on random interactions and transmission
-# probabilities. The model tracks how infections spread across households and
-# social links, showing how an outbreak grows, peaks, and eventually declines
-# within the connected population.
+# The simulation runs for nt days, updating each person’s health status
+# over time.
+# Individuals move through four states — Susceptible (S), Exposed (E),
+# Infectious (I), and Recovered (R) — based on random interactions and 
+# transmission probabilities. The model tracks how infections spread across
+# households and social links, showing how an outbreak grows, peaks, and
+# eventually declines within the connected population.
 # ------------------------------------------------------------------------------
 
 n <- 10000 ## number of population
@@ -145,7 +147,7 @@ nseir <- function(beta, h, alink, alpha = c(0.1, 0.01, 0.01),
         ## (a) Household infection
         prob_house <- rep(0, length(susceptible)) 
         prob_house[h[susceptible] == inf_house] <- alpha[1]
-        ## TRUE for susceptibles in same household; assign infection prob Alpha-h
+        ## TRUE for susceptibles in same household;assign infection prob Alpha-h
         
         ## (b) Regular contact infection
         prob_reg <- rep(0, length(susceptible))
